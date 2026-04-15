@@ -1,16 +1,17 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
 import { supabase, Listing, WishlistItem } from '@/lib/supabase'
-import { Check, X, Bookmark, ExternalLink, RefreshCw, Plus } from 'lucide-react'
+import { Check, X, Bookmark, ExternalLink, Plus } from 'lucide-react'
 import Link from 'next/link'
+import { cardStyle } from '@/components/ui'
 
 export default function DealsPage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [wishlist, setWishlist] = useState<WishlistItem[]>([])
-  const [filterItem, setFilterItem] = useState<string>('all')
+  const [filterItem, setFilterItem] = useState('all')
   const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [swiping, setSwiping] = useState<'left' | 'right' | null>(null)
+  const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null)
   const startX = useRef(0)
 
   useEffect(() => {
@@ -29,138 +30,149 @@ export default function DealsPage() {
 
   const act = async (status: 'saved' | 'dismissed') => {
     if (!card) return
-    setSwiping(status === 'saved' ? 'right' : 'left')
-    setTimeout(() => {
-      supabase.from('listings').update({ status }).eq('id', card.id)
+    setSwipeDir(status === 'saved' ? 'right' : 'left')
+    setTimeout(async () => {
+      await supabase.from('listings').update({ status }).eq('id', card.id)
       setListings(prev => prev.map(l => l.id === card.id ? { ...l, status } : l))
       setCurrent(c => c + 1)
-      setSwiping(null)
-    }, 300)
+      setSwipeDir(null)
+    }, 280)
   }
 
   const onTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX }
   const onTouchEnd = (e: React.TouchEvent) => {
     const diff = e.changedTouches[0].clientX - startX.current
-    if (diff > 80) act('saved')
-    else if (diff < -80) act('dismissed')
+    if (diff > 70) act('saved')
+    else if (diff < -70) act('dismissed')
   }
 
-  if (loading) return <div className="p-6 text-slate-500">Loading...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#C4A265', borderTopColor: 'transparent' }} />
+    </div>
+  )
+
+  const saved = listings.filter(l => l.status === 'saved')
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between pt-6 pb-4">
-        <h1 className="text-xl font-bold">Deals</h1>
-        <Link href="/wishlist" className="bg-emerald-500 text-black rounded-full p-1.5">
-          <Plus size={18} />
+    <div className="min-h-screen px-5">
+      <div className="flex items-center justify-between pt-12 pb-2">
+        <h1 className="text-2xl font-bold" style={{ color: '#F0E8D8' }}>Deals</h1>
+        <Link href="/wishlist" className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium" style={{ background: 'rgba(196,162,101,0.12)', color: '#C4A265', border: '1px solid rgba(196,162,101,0.25)' }}>
+          <Plus size={16} /> Wishlist
         </Link>
       </div>
+      <p className="text-xs mb-5" style={{ color: '#8A7968' }}>Swipe right to save, left to skip</p>
 
-      {/* Filter by wishlist item */}
-      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
-        <button onClick={() => { setFilterItem('all'); setCurrent(0) }} className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors ${filterItem === 'all' ? 'bg-slate-700 border-slate-600 text-white' : 'border-slate-800 text-slate-500'}`}>
-          All ({listings.length})
-        </button>
-        {wishlist.map(w => (
-          <button key={w.id} onClick={() => { setFilterItem(w.id); setCurrent(0) }} className={`shrink-0 text-xs px-3 py-1 rounded-full border transition-colors ${filterItem === w.id ? 'bg-slate-700 border-slate-600 text-white' : 'border-slate-800 text-slate-500'}`}>
-            {w.name}
+      {/* Filter chips */}
+      {wishlist.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-4" style={{ scrollbarWidth: 'none' }}>
+          <button onClick={() => { setFilterItem('all'); setCurrent(0) }}
+            className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium"
+            style={{ background: filterItem === 'all' ? 'rgba(196,162,101,0.15)' : '#2E2318', color: filterItem === 'all' ? '#C4A265' : '#8A7968', border: `1px solid ${filterItem === 'all' ? 'rgba(196,162,101,0.3)' : '#3A2D20'}` }}>
+            All ({listings.length})
           </button>
-        ))}
-      </div>
+          {wishlist.map(w => (
+            <button key={w.id} onClick={() => { setFilterItem(w.id); setCurrent(0) }}
+              className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium"
+              style={{ background: filterItem === w.id ? 'rgba(196,162,101,0.15)' : '#2E2318', color: filterItem === w.id ? '#C4A265' : '#8A7968', border: `1px solid ${filterItem === w.id ? 'rgba(196,162,101,0.3)' : '#3A2D20'}` }}>
+              {w.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Swipe card */}
       {card ? (
-        <div className="relative">
+        <div>
           <div
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
-            className={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition-transform duration-300 ${swiping === 'right' ? 'translate-x-full opacity-0' : swiping === 'left' ? '-translate-x-full opacity-0' : ''}`}
+            className="rounded-3xl overflow-hidden transition-all duration-300 select-none"
+            style={{
+              background: '#241C14',
+              border: '1px solid #3A2D20',
+              transform: swipeDir === 'right' ? 'translateX(110%) rotate(8deg)' : swipeDir === 'left' ? 'translateX(-110%) rotate(-8deg)' : 'none',
+              opacity: swipeDir ? 0 : 1,
+            }}
           >
-            {/* Photo */}
-            {card.photos[0] && (
-              <img src={card.photos[0]} alt={card.title} className="w-full h-56 object-cover" />
-            )}
-            {!card.photos[0] && (
-              <div className="w-full h-32 bg-slate-800 flex items-center justify-center text-slate-600 text-4xl">📦</div>
+            {card.photos[0] ? (
+              <img src={card.photos[0]} alt={card.title} className="w-full object-cover" style={{ height: 220 }} />
+            ) : (
+              <div className="w-full flex items-center justify-center text-5xl" style={{ height: 140, background: '#2E2318' }}>📦</div>
             )}
 
-            <div className="p-4">
-              {/* Source badge */}
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-slate-500 uppercase tracking-wide">{card.source}</span>
-                {card.ai_score && (
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${card.ai_score >= 8 ? 'bg-emerald-500/20 text-emerald-400' : card.ai_score >= 6 ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-700 text-slate-400'}`}>
+            <div className="p-5">
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-xs uppercase tracking-widest font-medium" style={{ color: '#8A7968' }}>{card.source}</span>
+                {card.ai_score != null && (
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{
+                      background: card.ai_score >= 8 ? 'rgba(43,90,62,0.5)' : card.ai_score >= 6 ? 'rgba(124,92,58,0.5)' : '#3A2D20',
+                      color: card.ai_score >= 8 ? '#4ADE80' : card.ai_score >= 6 ? '#C4A265' : '#8A7968',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}>
                     {card.ai_score}
                   </div>
                 )}
               </div>
 
-              <h2 className="font-semibold text-lg leading-snug mb-1">{card.title}</h2>
-              <div className="flex items-center gap-3 text-sm text-slate-400 mb-3">
-                <span className="text-emerald-400 font-bold text-xl">${card.price ?? '?'}</span>
-                {card.location && <span>· {card.location}</span>}
-                {card.distance_km && <span>· {card.distance_km}km away</span>}
+              <h2 className="text-lg font-semibold leading-snug mb-2" style={{ color: '#F0E8D8' }}>{card.title}</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl font-bold" style={{ color: '#C4A265' }}>${card.price ?? '?'}</span>
+                {card.location && <span className="text-sm" style={{ color: '#8A7968' }}>{card.location}</span>}
+                {card.distance_km && <span className="text-sm" style={{ color: '#8A7968' }}>{card.distance_km}km</span>}
               </div>
 
               {card.ai_verdict && (
-                <div className="bg-slate-800 rounded-xl p-3 mb-3 text-sm text-slate-300 italic">
+                <div className="rounded-xl px-4 py-3 mb-3 text-sm italic" style={{ background: 'rgba(43,90,62,0.15)', border: '1px solid rgba(43,90,62,0.3)', color: '#B0A090' }}>
                   "{card.ai_verdict}"
                 </div>
               )}
 
-              {card.description && (
-                <p className="text-xs text-slate-500 line-clamp-3">{card.description}</p>
-              )}
+              {card.description && <p className="text-xs line-clamp-2" style={{ color: '#8A7968' }}>{card.description}</p>}
             </div>
           </div>
 
-          {/* Progress */}
-          <div className="text-center text-xs text-slate-600 mt-2">
-            {current + 1} of {filtered.length}
-          </div>
+          <p className="text-center text-xs mt-2 mb-5" style={{ color: '#5A4530' }}>{current + 1} of {filtered.length}</p>
 
-          {/* Action buttons */}
-          <div className="flex justify-center gap-6 mt-4">
-            <button onClick={() => act('dismissed')} className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-red-400 active:scale-95 transition-transform">
-              <X size={24} />
+          <div className="flex justify-center gap-5">
+            <button onClick={() => act('dismissed')} className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-90" style={{ background: '#2E2318', border: '1px solid rgba(220,38,38,0.3)' }}>
+              <X size={26} style={{ color: '#DC2626' }} />
             </button>
-            <a href={card.url || '#'} target="_blank" rel="noopener noreferrer" className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 active:scale-95 transition-transform">
-              <ExternalLink size={20} />
+            <a href={card.url || '#'} target="_blank" rel="noopener noreferrer" className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: '#2E2318', border: '1px solid #3A2D20' }}>
+              <ExternalLink size={20} style={{ color: '#8A7968' }} />
             </a>
-            <button onClick={() => act('saved')} className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 active:scale-95 transition-transform">
-              <Check size={24} />
+            <button onClick={() => act('saved')} className="w-16 h-16 rounded-full flex items-center justify-center transition-transform active:scale-90" style={{ background: 'rgba(43,90,62,0.3)', border: '1px solid rgba(74,222,128,0.3)' }}>
+              <Check size={26} style={{ color: '#4ADE80' }} />
             </button>
           </div>
-          <p className="text-center text-xs text-slate-600 mt-2">Swipe or tap ✓ to save · ✗ to skip</p>
         </div>
       ) : (
-        <div className="text-center py-16 space-y-4">
-          <div className="text-5xl">🎉</div>
-          <p className="text-slate-400">All caught up! No new deals.</p>
-          <div className="flex flex-col gap-2 items-center">
-            <Link href="/wishlist" className="text-sm text-emerald-400">Manage wishlist →</Link>
-            <button onClick={() => setCurrent(0)} className="flex items-center gap-1 text-xs text-slate-500">
-              <RefreshCw size={12} /> Review dismissed
-            </button>
-          </div>
+        <div className="text-center py-20">
+          <div className="text-5xl mb-4">🌿</div>
+          <p className="font-medium mb-1" style={{ color: '#F0E8D8' }}>All caught up</p>
+          <p className="text-sm mb-6" style={{ color: '#8A7968' }}>No new deals right now</p>
+          <Link href="/wishlist" className="inline-flex text-sm font-medium" style={{ color: '#C4A265' }}>Manage wishlist →</Link>
         </div>
       )}
 
-      {/* Saved deals */}
-      {listings.filter(l => l.status === 'saved').length > 0 && (
-        <div className="mt-8">
+      {/* Saved */}
+      {saved.length > 0 && (
+        <div className="mt-10">
           <div className="flex items-center gap-2 mb-3">
-            <Bookmark size={14} className="text-emerald-400" />
-            <span className="text-sm font-semibold text-slate-300">Saved deals ({listings.filter(l => l.status === 'saved').length})</span>
+            <Bookmark size={14} style={{ color: '#C4A265' }} />
+            <span className="text-sm font-semibold" style={{ color: '#B0A090' }}>Saved ({saved.length})</span>
           </div>
           <div className="space-y-2">
-            {listings.filter(l => l.status === 'saved').map(l => (
-              <a key={l.id} href={l.url || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-slate-900 border border-emerald-500/20 rounded-xl px-4 py-3">
+            {saved.map(l => (
+              <a key={l.id} href={l.url || '#'} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ ...cardStyle, border: '1px solid rgba(43,90,62,0.4)' }}>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{l.title}</div>
-                  <div className="text-xs text-slate-500">{l.source} · ${l.price}</div>
+                  <div className="text-sm font-medium truncate" style={{ color: '#F0E8D8' }}>{l.title}</div>
+                  <div className="text-xs mt-0.5" style={{ color: '#8A7968' }}>{l.source} · ${l.price}</div>
                 </div>
-                <ExternalLink size={14} className="text-slate-500 shrink-0 ml-2" />
+                <ExternalLink size={14} style={{ color: '#8A7968' }} className="ml-2 shrink-0" />
               </a>
             ))}
           </div>

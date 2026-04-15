@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase, WishlistItem } from '@/lib/supabase'
-import { Plus, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { LoaderCircle, Plus, Search, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
 
 const CATEGORIES = ['furniture', 'appliance', 'lighting', 'bedding', 'decor', 'tools', 'cleaning', 'outdoor', 'other']
 
@@ -10,6 +10,8 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', category: 'furniture', max_price: '', radius_km: '50', notes: '' })
+  const [runningSearch, setRunningSearch] = useState(false)
+  const [searchMessage, setSearchMessage] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.from('wishlist_items').select('*').order('created_at').then(({ data }) => {
@@ -42,6 +44,33 @@ export default function WishlistPage() {
     setItems(prev => prev.filter(i => i.id !== id))
   }
 
+  const runSearch = async () => {
+    setRunningSearch(true)
+    setSearchMessage(null)
+
+    try {
+      const res = await fetch('/api/scrape', { method: 'POST' })
+      const body = await res.json() as { ok: boolean; error?: string; output?: string }
+
+      if (!res.ok || !body.ok) {
+        setSearchMessage(body.error || 'Search failed.')
+        return
+      }
+
+      const summaryLine = body.output
+        ?.split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .find(line => line.includes('Done.'))
+
+      setSearchMessage(summaryLine || 'Search finished. Check Deals for new results.')
+    } catch {
+      setSearchMessage('Search failed. Make sure the Next app server can run the scraper.')
+    } finally {
+      setRunningSearch(false)
+    }
+  }
+
   if (loading) return <div className="p-6 text-slate-500">Loading...</div>
 
   return (
@@ -51,10 +80,26 @@ export default function WishlistPage() {
           <h1 className="text-xl font-bold">Wishlist</h1>
           <p className="text-xs text-slate-500 mt-0.5">Scrapers hunt for these items across all sources</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="bg-emerald-500 text-black rounded-full p-1.5">
-          <Plus size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={runSearch}
+            disabled={runningSearch}
+            className="flex items-center gap-2 rounded-full border border-slate-700 px-3 py-2 text-xs text-slate-200 disabled:opacity-60"
+          >
+            {runningSearch ? <LoaderCircle size={14} className="animate-spin" /> : <Search size={14} />}
+            <span>{runningSearch ? 'Searching...' : 'Run search now'}</span>
+          </button>
+          <button onClick={() => setShowForm(!showForm)} className="bg-emerald-500 text-black rounded-full p-1.5">
+            <Plus size={18} />
+          </button>
+        </div>
       </div>
+
+      {searchMessage && (
+        <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-300">
+          {searchMessage}
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 space-y-3">

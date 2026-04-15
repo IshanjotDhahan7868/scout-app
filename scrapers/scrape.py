@@ -7,31 +7,46 @@ Dumps results to Supabase.
 import os, re, json, time, hashlib, feedparser, requests
 from datetime import datetime
 from urllib.parse import quote_plus
-from supabase import create_client
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 LOCATION_LAT = 43.9377  # Palgrave, ON
 LOCATION_LNG = -79.8428
-
-sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+REST_URL = f"{SUPABASE_URL}/rest/v1"
+HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+}
 
 
 def upsert_listing(source: str, external_id: str, data: dict):
     """Insert or ignore (on conflict) a listing."""
     try:
-        sb.table("listings").upsert(
-            {"source": source, "external_id": external_id, **data},
-            on_conflict="source,external_id",
-            ignore_duplicates=True,
-        ).execute()
+        res = requests.post(
+            f"{REST_URL}/listings",
+            params={"on_conflict": "source,external_id"},
+            headers={
+                **HEADERS,
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            json={"source": source, "external_id": external_id, **data},
+            timeout=30,
+        )
+        res.raise_for_status()
     except Exception as e:
         print(f"  upsert error: {e}")
 
 
 def get_wishlist():
-    res = sb.table("wishlist_items").select("*").eq("active", True).execute()
-    return res.data or []
+    res = requests.get(
+        f"{REST_URL}/wishlist_items",
+        params={"select": "*", "active": "eq.true"},
+        headers=HEADERS,
+        timeout=30,
+    )
+    res.raise_for_status()
+    return res.json() or []
 
 
 # ─── Kijiji ──────────────────────────────────────────────────────────────────
