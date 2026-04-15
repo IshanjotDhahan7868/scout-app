@@ -1,11 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, ShoppingBag, ClipboardList, MessageSquare, ShieldCheck } from 'lucide-react'
+import { Home, ShoppingBag, ClipboardList, MessageSquare, BookOpen } from 'lucide-react'
 
 const links = [
   { href: '/', icon: Home, label: 'Home' },
-  { href: '/property/ops', icon: ShieldCheck, label: 'Property' },
+  { href: '/guide', icon: BookOpen, label: 'Playbook' },
   { href: '/deals', icon: ShoppingBag, label: 'Deals' },
   { href: '/orders', icon: ClipboardList, label: 'Tasks' },
   { href: '/chat', icon: MessageSquare, label: 'Ask AI' },
