@@ -7,12 +7,18 @@ const execFileAsync = promisify(execFile)
 export const runtime = 'nodejs'
 
 export async function POST() {
-  const runnerPath = path.join(process.cwd(), 'scripts', 'run-scrape.mjs')
+  const scriptPath = path.join(process.cwd(), 'scrapers', 'scrape.py')
+
+  const env = {
+    ...process.env,
+    SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+  }
 
   try {
-    const { stdout, stderr } = await execFileAsync(process.execPath, [runnerPath], {
+    const { stdout, stderr } = await execFileAsync('python3', [scriptPath], {
       cwd: process.cwd(),
-      env: process.env,
+      env,
       timeout: 10 * 60 * 1000,
       maxBuffer: 1024 * 1024 * 10,
     })

@@ -28,6 +28,7 @@ export default function WishlistPage() {
       max_price: form.max_price ? Number(form.max_price) : null,
       radius_km: Number(form.radius_km),
       notes: form.notes || null,
+      active: true,
     }).select().single()
     if (data) setItems(prev => [...prev, data])
     setForm({ name: '', category: 'furniture', max_price: '', radius_km: '50', notes: '' })
@@ -57,13 +58,7 @@ export default function WishlistPage() {
         return
       }
 
-      const summaryLine = body.output
-        ?.split('\n')
-        .map(line => line.trim())
-        .filter(Boolean)
-        .find(line => line.includes('Done.'))
-
-      setSearchMessage(summaryLine || 'Search finished. Check Deals for new results.')
+      setSearchMessage(body.output?.trim() || 'Search finished. Check Deals for new results.')
     } catch {
       setSearchMessage('Search failed. Make sure the Next app server can run the scraper.')
     } finally {
@@ -96,7 +91,7 @@ export default function WishlistPage() {
       </div>
 
       {searchMessage && (
-        <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-300">
+        <div className="mb-4 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto font-mono">
           {searchMessage}
         </div>
       )}

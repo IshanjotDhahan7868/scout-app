@@ -159,18 +159,21 @@ begin
 end $$;
 
 -- Pre-load wishlist items (common BnB furnishing needs)
-insert into wishlist_items (name, category, max_price, radius_km, notes) values
-  ('Queen bed frame', 'furniture', 150, 75, 'Metal or wood, no headboard required. Just sturdy.'),
-  ('Queen mattress', 'furniture', 300, 75, 'Firm or medium. Must be clean — no stains. Mattress protector goes on top anyway.'),
-  ('Dining table', 'furniture', 200, 75, 'Seats at least 4. Kitchen table style or farmhouse.'),
-  ('Dining chairs', 'furniture', 100, 75, 'Set of 4. Matching or mix-and-match rustic is fine.'),
-  ('Couch or sofa', 'furniture', 250, 75, 'Clean, no major damage. Neutral colour preferred.'),
-  ('Coffee table', 'furniture', 80, 75, 'Any style. Just solid and no wobbly legs.'),
-  ('Dressers', 'furniture', 100, 75, 'For each bedroom. Drawers must open. No broken handles.'),
-  ('Lamps', 'lighting', 40, 60, 'Floor or table lamps. Warm bulb included ideally.'),
-  ('Towels', 'bedding', 50, 50, 'Sets of 4+. White or neutral. Must be clean with no stains.'),
-  ('Bedding sets', 'bedding', 80, 60, 'Duvet + cover + pillowcases. Neutral/white preferred.'),
-  ('Curtains or blinds', 'decor', 60, 60, 'Blackout preferred for bedrooms. Any colour.'),
-  ('Kitchen appliances', 'appliance', 100, 75, 'Kettle, toaster, coffee maker — any or all.'),
-  ('Cleaning supplies bundle', 'cleaning', 50, 40, 'Mop, broom, vacuum, spray bottles, gloves, cloths.')
+insert into wishlist_items (name, category, max_price, radius_km, notes, active) values
+  ('Queen bed frame', 'furniture', 150, 75, 'Metal or wood, no headboard required. Just sturdy.', true),
+  ('Queen mattress', 'furniture', 300, 75, 'Firm or medium. Must be clean — no stains. Mattress protector goes on top anyway.', true),
+  ('Dining table', 'furniture', 200, 75, 'Seats at least 4. Kitchen table style or farmhouse.', true),
+  ('Dining chairs', 'furniture', 100, 75, 'Set of 4. Matching or mix-and-match rustic is fine.', true),
+  ('Couch or sofa', 'furniture', 250, 75, 'Clean, no major damage. Neutral colour preferred.', true),
+  ('Coffee table', 'furniture', 80, 75, 'Any style. Just solid and no wobbly legs.', true),
+  ('Dressers', 'furniture', 100, 75, 'For each bedroom. Drawers must open. No broken handles.', true),
+  ('Lamps', 'lighting', 40, 60, 'Floor or table lamps. Warm bulb included ideally.', true),
+  ('Towels', 'bedding', 50, 50, 'Sets of 4+. White or neutral. Must be clean with no stains.', true),
+  ('Bedding sets', 'bedding', 80, 60, 'Duvet + cover + pillowcases. Neutral/white preferred.', true),
+  ('Curtains or blinds', 'decor', 60, 60, 'Blackout preferred for bedrooms. Any colour.', true),
+  ('Kitchen appliances', 'appliance', 100, 75, 'Kettle, toaster, coffee maker — any or all.', true),
+  ('Cleaning supplies bundle', 'cleaning', 50, 40, 'Mop, broom, vacuum, spray bottles, gloves, cloths.', true)
 on conflict do nothing;
+
+-- Activate all wishlist items (scraper only hunts active=true items)
+update wishlist_items set active = true where active is null or active = false;
